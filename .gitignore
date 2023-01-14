@@ -1,2 +1,4 @@
 .env
-
+.ip_local.temp
+.vpn_ip.temp
+.vpn_port.temp
