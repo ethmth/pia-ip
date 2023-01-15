@@ -7,12 +7,12 @@ ABSOLUTE_PATH=$(pwd)
 
 function get_vpn_ip
 {
-	piactl get vpnip
+	/usr/local/bin/piactl get vpnip
 }
 
 function get_portforward
 {
-	piactl get portforward
+	/usr/local/bin/piactl get portforward
 }
 
 # SEND IFTTT REQUEST

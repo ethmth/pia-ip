@@ -11,7 +11,7 @@ echo "-1" > ${ABSOLUTE_PATH}/.socat_pid.temp
 
 VPN_PORT=$(cat ${ABSOLUTE_PATH}/.vpn_port.temp)
 
-socat tcp-listen:$VPN_PORT,reuseaddr,fork tcp:localhost:$LOCAL_PORT &
+socat tcp-listen:$VPN_PORT,reuseaddr,fork tcp:localhost:$LOCAL_PORT &> /dev/null &
 echo "$!" > ${ABSOLUTE_PATH}/.socat_pid.temp
 
 exit 0

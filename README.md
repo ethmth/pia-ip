@@ -1,11 +1,3 @@
-# pia-ip
-
-Can update ZoneEditDDNS every 10 minutes, so run crontab every 11?
-
-Create cronjob to reset pia-fwd to port 22 every day or 6 hours or so, so I don't get locked out
-
-CHANGED ABSOLUTE_PATH in pia-fwd.sh
-
 # PIA IP
 
 A suite of shell scripts that provide autonomous functionality for Port Forwarding from the Private Internet Access Linux VPN Client.
@@ -20,7 +12,16 @@ The `pia-fwd.sh` script allows you to easily change the local port that the VPN 
 
 The scripts require the `netcat`, `curl`, and `socat` utilities. You'll need `git` to clone the repo and a text editor like `nano` to edit the `.env` file. You'll need `cron` if you want to set up a cronjob to run on startup in the way these scripts are intended to function. Since these scripts utilize pipes, only Linux is expected to work.
 
-You must configure your device to use the wireless network and automatically connect to the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) on startup through the Linux client. Installing the Linux client should include the `piactl` command line utility.
+To install `cron` on Arch Linux, use the `cronie` package:
+
+```sh
+sudo pacman -S cronie
+sudo systemctl enable cronie
+```
+
+You must configure your device to use the wireless network and automatically connect to the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) on startup through the Linux client. Installing the Linux client should include the `piactl` command line utility at `/usr/local/bin/piactl`.
+
+The default local port that is accessible on startup is 22, so it would be most beneficial if you have SSH setup on your machine.
 
 ## Setup
 
@@ -39,7 +40,7 @@ Copy the sample `.env.example` file to `.env`.
 cp .env.example .env
 ```
 
-Additionally, once in the `pia-ip` directory, run `pwd` to print your current directory. Copy your current directory and add it to the third line in `pia-fwd.sh` that says `ABSOLUTE_PATH="<YOUR_DIRECTORY_HERE>"`
+Additionally, once in the `pia-ip` directory, run `pwd` to print your current directory. Copy your current directory and add it to the third line in `pia-fwd.sh` that says `ABSOLUTE_PATH=`, replacing what's currently there.
 
 For example,
 
@@ -119,13 +120,13 @@ Then, add the following lines, replacing the directory with the directory you cl
 
 ```
 */1 * * * * /home/$USER/pia-ip/ipcheck.sh
-@reboot /home/$USER/pia-ip/ipcheck.sh startup
 @reboot /home/$USER/pia-ip/pia-port-detect.sh
+30 4 * * * /home/$USER/pia-ip/pia-fwd.sh 22
 ```
 
 - The first line will cause the `ipcheck.sh` script to check for VPN IP updates every minute.
-- The second line will cause the `ipcheck.sh` script to check for the new VPN IP you're assigned on Auto-Connect on startup.
-- The third line should start the `pia-port-detect.sh` script which will always run on startup.
+- The second line should start the `pia-port-detect.sh` script which will always run on startup, and should stay running until you shutdown to ensure that any VPN Port changes are accounted for.
+- The third line will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up.
 
 ### Easily access `pia-fwd.sh`
 
@@ -137,3 +138,5 @@ sudo chmod +x /usr/bin/pia-fwd # Ensure it's executable
 ```
 
 Now, you can simply type `$ pia-fwd 25565` in your shell to start forwarding the VPN port to the default Minecraft Local Port. This is an example and you could use any valid port instead of 25565.
+
+Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later. (SSH Port 22 is the default port on startup).
