@@ -2,3 +2,5 @@
 .ip_local.temp
 .vpn_ip.temp
 .vpn_port.temp
+.socat_pid.temp
+.vpn_port_pipe
