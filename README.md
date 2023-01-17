@@ -171,8 +171,6 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 
   - This could be used in the `ipcheck.sh` script to have one continuously running script to check and report changes, instead of re-running the script every minute.
 
-  - This could also be used in the `pia-port-detect.sh` script instead of reading from a pipe/fifo.
-
   - Ultimately, this could reduce/eliminate the need for hidden files that hold current values.
 
 - Instead of checking for VPN connection is `ipcheck.sh` script, check for internet connection so that the IFTTT event is also triggered when the device is disconnected from the VPN. (This is important information to know if trying to connect remotely).
