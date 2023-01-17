@@ -88,8 +88,6 @@ IFTTT_KEY=<your_key>
 
 > **_NOTE:_** The example `.env` file has fields for ZoneEdit DNS options. These options can be ignored as I went against the Dynamic DNS implementation. If you know what you're doing, feel free to uncomment the appropriate line in `ipcheck.sh` and fill out the fields in `.env`.
 
-## Running the Scripts
-
 ### Test the Setup
 
 Make the scripts executable.
@@ -107,6 +105,8 @@ Once you added the environment variables to the `.env` file, test the first scri
 ```
 
 If you set it up correctly, your IFTTT event should get triggered with the local IP address, the VPN IP address, and the VPN Port.
+
+## Using the Scripts
 
 ### Run on Startup/Detect IP Changes
 
@@ -164,3 +164,23 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 ```
 
 > **_NOTE:_** The cronjob may not be entirely necessary. One would think that with the Daemon enabled, and "Connect on Launch" checked in the settings, it would automatically connect. However, more testing is needed to determine if this is the case.
+
+## To Do
+
+- Utilize `piactl monitor` to detect for value changes instead of doing it manually using `piactl get`.
+
+  - This could be used in the `ipcheck.sh` script to have one continuously running script to check and report changes, instead of re-running the script every minute.
+
+  - This could also be used in the `pia-port-detect.sh` script instead of reading from a pipe/fifo.
+
+  - Ultimately, this could reduce/eliminate the need for hidden files that hold current values.
+
+- Test necessity of `piactl connect` cronjob when daemon is enabled and auto-connect is enabled. See the `### Connect to PIA VPN on System Startup` section.
+
+- Instead of checking for VPN connection is `ipcheck.sh` script, check for internet connection so that the IFTTT event is also triggered when the device is disconnected from the VPN. (This is important information to know if trying to connect remotely).
+
+  - The first check could be for internet, then the check for VPN IP, then the check for VPN Port. The first check would exit if no internet connection is detected after say 20 checks in 5 minutes. The second two checks could only wait, for example, 10 and 3 seconds respectively before moving on and reporting a disconnected/inactive state rather than quitting.
+
+  - Alternatively, instead of using the `pi-ip` internet check, one could see if `piactl` could give connection status without the VPN connected. This way `piactl monitor` could be used throughout.
+
+- In `pia-port-detect.sh`, check whether the port read from the pipe/fifo is "Inactive" or Invalid so the script doesn't attempt to execute an invalid socat command.
