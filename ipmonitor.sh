@@ -16,6 +16,13 @@ function check_online
 	fi
 }
 
+# SEND IFTTT REQUEST
+function ifttt_request
+{
+	curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}
+	echo "Running curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}"
+}
+
 # CHECK FOR ONLINE STATUS
 IS_ONLINE=$(check_online)
 MAX_CHECKS=20
@@ -30,51 +37,31 @@ while [ "$IS_ONLINE" = "0" ]; do
 	fi
 done
 
-# i=0
+
 while true
 do
     if read line; then
 
         if ! [ "$line" = "Attempting" ]; then
-            # echo "$line"
-            # i=$((i+1))
-            # echo "$i"
 
 			ELAPSED=$((SECONDS-SENT_AT))
 
 			if ([ $ELAPSED -gt 2 ] || [ $SECONDS -lt 5 ]); then
-                # echo "Diff CONNECT"
 
-				# GET THE LOCAL IP
 				source "${ABSOLUTE_PATH}/.env"
 				LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
 				LOCAL_INET=($LOCAL_INET)
 				LOCAL_IP=${LOCAL_INET[1]}
-            fi
 
+				VPN_IP=$(/usr/local/bin/piactl get vpnip)
+				VPN_PORT=$(/usr/local/bin/piactl get portforward)
+            
+			
+				ifttt_request
+				SENT_AT=$SECONDS
 
-
-
-			SENT_AT=$SECONDS
-
-            # echo "ELAPSED $ELAPSED"
-            # echo "$line"
-            # i=$((i+1))
-            # echo "$i"
-
-            # echo "SECONDS $SECONDS"
-
-            # SENT_AT=$SECONDS
-
+			fi
         fi
-
-        # VPN_PORT=$line
-		# echo "$VPN_PORT"
-        # if ! ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ]); then
-            # echo "That's valid silly"
-        # fi
     fi
-# done < <(cat $(/usr/local/bin/piactl monitor portforward))
-# done < <(cat <(/usr/local/bin/piactl monitor vpnip) <(/usr/local/bin/piactl monitor portforward))
 done < <((/usr/local/bin/piactl monitor vpnip) & (/usr/local/bin/piactl monitor portforward))
 
