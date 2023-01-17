@@ -163,7 +163,7 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 @reboot /usr/local/bin/piactl connect
 ```
 
-> **_NOTE:_** The cronjob may not be entirely necessary. One would think that with the Daemon enabled, and "Connect on Launch" checked in the settings, it would automatically connect. However, more testing is needed to determine if this is the case.
+> **_NOTE:_** The cronjob is necessary even when the PIA daemon is enabled and auto-connect is enabled for connect on startup.
 
 ## To Do
 
@@ -175,8 +175,6 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 
   - Ultimately, this could reduce/eliminate the need for hidden files that hold current values.
 
-- Test necessity of `piactl connect` cronjob when daemon is enabled and auto-connect is enabled. See the `### Connect to PIA VPN on System Startup` section.
-
 - Instead of checking for VPN connection is `ipcheck.sh` script, check for internet connection so that the IFTTT event is also triggered when the device is disconnected from the VPN. (This is important information to know if trying to connect remotely).
 
   - The first check could be for internet, then the check for VPN IP, then the check for VPN Port. The first check would exit if no internet connection is detected after say 20 checks in 5 minutes. The second two checks could only wait, for example, 10 and 3 seconds respectively before moving on and reporting a disconnected/inactive state rather than quitting.
@@ -184,3 +182,7 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
   - Alternatively, instead of using the `pi-ip` internet check, one could see if `piactl` could give connection status without the VPN connected. This way `piactl monitor` could be used throughout.
 
 - In `pia-port-detect.sh`, check whether the port read from the pipe/fifo is "Inactive" or Invalid so the script doesn't attempt to execute an invalid socat command.
+
+- Add a "message" field in the IFTTT request that can be set in `.env`. This could be used to specify the device if the user uses the same IFTTT event for multiple devices, etc.
+
+- Reorganize this README
