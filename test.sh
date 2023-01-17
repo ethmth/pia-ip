@@ -9,11 +9,23 @@ do
     if read line; then
 
         if ! [ "$line" = "Attempting" ]; then
+
+            ELAPSED=$((SECONDS-SENT_AT))
+            if [ $ELAPSED -gt 2 ]; then
+                echo "Diff CONNECT"
+            fi
+            echo "ELAPSED $ELAPSED"
             echo "$line"
             i=$((i+1))
             echo "$i"
 
+            # echo "SECONDS $SECONDS"
+
+            SENT_AT=$SECONDS
+            echo "SENT AT $SENT_AT"
+
         fi
+
 
         # VPN_PORT=$line
 		# echo "$VPN_PORT"
