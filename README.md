@@ -183,6 +183,4 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 
 - In `pia-port-detect.sh`, check whether the port read from the pipe/fifo is "Inactive" or Invalid so the script doesn't attempt to execute an invalid socat command.
 
-- Add a "message" field in the IFTTT request that can be set in `.env`. This could be used to specify the device if the user uses the same IFTTT event for multiple devices, etc.
-
 - Reorganize this README
