@@ -140,3 +140,27 @@ sudo chmod +x /usr/bin/pia-fwd # Ensure it's executable
 Now, you can simply type `$ pia-fwd 25565` in your shell to start forwarding the VPN port to the default Minecraft Local Port. This is an example and you could use any valid port instead of 25565.
 
 Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later. (SSH Port 22 is the default port on startup).
+
+### Connect to PIA VPN on System Startup
+
+First, ensure that the `piactl` executable is at`/usr/local/bin/piactl`.
+
+Enable the PIA VPN Daemon.
+
+```sh
+piactl background enable
+```
+
+Open the PIA VPN GUI and configure your desired server and settings.
+
+- Under "Network," you may want to check "Request Port Forwarding" and "Allow LAN Traffic."
+
+- Under "General," you may want to check "Launch on System Startup" and "Connect on Launch."
+
+Add a cronjob to `crontab -e` to connect to the VPN on startup.
+
+```
+@reboot /usr/local/bin/piactl connect
+```
+
+> **_NOTE:_** The cronjob may not be entirely necessary. One would think that with the Daemon enabled, and "Connect on Launch" checked in the settings, it would automatically connect. However, more testing is needed to determine if this is the case.
