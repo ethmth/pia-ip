@@ -37,6 +37,22 @@ while [ "$IS_ONLINE" = "0" ]; do
 	fi
 done
 
+#######################
+## CALL THE IFTTT BEFORE YOU START THE LOOP FOR INITIAL CONNECTION
+
+source "${ABSOLUTE_PATH}/.env"
+LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
+LOCAL_INET=($LOCAL_INET)
+LOCAL_IP=${LOCAL_INET[1]}
+
+VPN_IP=$(/usr/local/bin/piactl get vpnip)
+VPN_PORT=$(/usr/local/bin/piactl get portforward)
+
+
+ifttt_request
+SENT_AT=$SECONDS
+###############################
+
 
 while true
 do
@@ -46,7 +62,7 @@ do
 
 			ELAPSED=$((SECONDS-SENT_AT))
 
-			if ([ $ELAPSED -gt 2 ] || [ $SECONDS -lt 5 ]); then
+			if [ $ELAPSED -gt 2 ]; then
 
 				source "${ABSOLUTE_PATH}/.env"
 				LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
