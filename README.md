@@ -2,15 +2,21 @@
 
 A suite of shell scripts that provide autonomous functionality for Port Forwarding from the Private Internet Access Linux VPN Client.
 
-The shell script `ipcheck.sh` check for changes to your VPN IP and Port, and triggers an IFTTT event if changes are detected. This way you can be remotely notified how to connect to the PC without knowing the IP and Port the VPN assigns on auto connect.
+The shell script `ipcheck.sh` checks for changes to your VPN IP and Port, and triggers an IFTTT event if changes are detected. This way you can be remotely notified how to connect to the PC without knowing the IP and Port the VPN assigns on auto connect.
 
-The `pia-port-detect.sh` script runs in the background, and whenever `ipcheck.sh` detects port changes, `pia-port.detect.sh` forwards the new VPN port to the specified (last used) local port. This allows you to easily use SSH, a Minecraft server, etc. with your PIA Port.
+The `pia-port-detect.sh` script runs in the background, forwarding the current VPN port to the specified local port (default: 22). This allows you to easily use SSH, a Minecraft server, etc. with your PIA Port.
 
-The `pia-fwd.sh` script allows you to easily change the local port that the VPN port points to. For example, `./pia-fwd.sh 22` would point the PIA Port to SSH.
+The `pia-fwd.sh` script allows you to easily change the local port that the VPN port points to. For example, `./pia-fwd.sh 25565` would point the PIA VPN Port to Port 25565 (default for Minecraft server).
 
 ## Requirements
 
-The scripts require the `netcat`, `curl`, and `socat` utilities. You'll need `git` to clone the repo and a text editor like `nano` to edit the `.env` file. You'll need `cron` if you want to set up a cronjob to run on startup in the way these scripts are intended to function. Since these scripts utilize pipes, only Linux is expected to work.
+The scripts require the `netcat`, `curl`, and `socat` utilities. You'll need `git` to clone the repo and a text editor like `nano` to edit the `.env` file.
+
+Additionally, the default local port that is accessible on startup is 22, so it would be most beneficial if you have SSH setup on your machine. You can change this default port in `pia-port-detect.sh`.
+
+### Cron
+
+You'll need `cron` if you want to set up a cronjob to run on startup in the way these scripts are intended to function.
 
 To install `cron` on Arch Linux, use the `cronie` package:
 
@@ -19,9 +25,31 @@ sudo pacman -S cronie
 sudo systemctl enable cronie
 ```
 
-You must configure your device to use the wireless network and automatically connect to the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) on startup through the Linux client. Installing the Linux client should include the `piactl` command line utility at `/usr/local/bin/piactl`.
+### Connect to PIA VPN on System Startup
 
-The default local port that is accessible on startup is 22, so it would be most beneficial if you have SSH setup on your machine.
+You must configure your device to use a wireless/wired network and automatically connect to the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) on startup.
+
+First, install the PIA VPN Linux Client using their official script. Ensure that the `piactl` executable is at`/usr/local/bin/piactl`.
+
+Enable the PIA VPN Daemon.
+
+```sh
+piactl background enable
+```
+
+Open the PIA VPN GUI and configure your desired server and settings.
+
+- Under "Network," you may want to check "Request Port Forwarding" and "Allow LAN Traffic."
+
+- Under "General," you may want to check "Launch on System Startup" and "Connect on Launch."
+
+Add a cronjob to `crontab -e` to connect to the VPN on startup.
+
+```
+@reboot /usr/local/bin/piactl connect
+```
+
+> **_NOTE:_** The cronjob is necessary even when the PIA daemon is enabled and auto-connect is enabled to connect on startup.
 
 ## Setup
 
@@ -86,7 +114,7 @@ Once the Applet is created, go to [ifttt.com/maker_webhooks](https://ifttt.com/m
 IFTTT_KEY=<your_key>
 ```
 
-> **_NOTE:_** The example `.env` file has fields for ZoneEdit DNS options. These options can be ignored as I went against the Dynamic DNS implementation. If you know what you're doing, feel free to uncomment the appropriate line in `ipcheck.sh` and fill out the fields in `.env`.
+You can put whatever you'd like for the `IFTTT_MESSAGE`.
 
 ### Test the Setup
 
@@ -98,7 +126,7 @@ chmod +x pia-fwd.sh
 chmod +x pia-port-detect.sh
 ```
 
-Once you added the environment variables to the `.env` file, test the first script by running it while connected to PIA VPN with Port Forwarding enabled.
+Once you added the environment variables to the `.env` file, test the first script by running it.
 
 ```sh
 ./ipcheck.sh
@@ -119,14 +147,14 @@ crontab -e # Edit your crontab
 Then, add the following lines, replacing the directory with the directory you cloned the git repo into.
 
 ```
-*/1 * * * * /home/$USER/pia-ip/ipcheck.sh
+@reboot /home/$USER/pia-ip/ipcheck.sh
 @reboot /home/$USER/pia-ip/pia-port-detect.sh
 30 4 * * * /home/$USER/pia-ip/pia-fwd.sh 22
 ```
 
-- The first line will cause the `ipcheck.sh` script to check for VPN IP updates every minute.
-- The second line should start the `pia-port-detect.sh` script which will always run on startup, and should stay running until you shutdown to ensure that any VPN Port changes are accounted for.
-- The third line will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up.
+- The first line will cause the `ipcheck.sh` script to run on startup and detect VPN IP updates.
+- The second line will start the `pia-port-detect.sh` script which will also run on startup to ensure that any VPN Port changes are accounted for.
+- The third line (**NOT REQUIRED**) will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up your forwarding.
 
 ### Easily access `pia-fwd.sh`
 
@@ -139,46 +167,4 @@ sudo chmod +x /usr/bin/pia-fwd # Ensure it's executable
 
 Now, you can simply type `$ pia-fwd 25565` in your shell to start forwarding the VPN port to the default Minecraft Local Port. This is an example and you could use any valid port instead of 25565.
 
-Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later. (SSH Port 22 is the default port on startup).
-
-### Connect to PIA VPN on System Startup
-
-First, ensure that the `piactl` executable is at`/usr/local/bin/piactl`.
-
-Enable the PIA VPN Daemon.
-
-```sh
-piactl background enable
-```
-
-Open the PIA VPN GUI and configure your desired server and settings.
-
-- Under "Network," you may want to check "Request Port Forwarding" and "Allow LAN Traffic."
-
-- Under "General," you may want to check "Launch on System Startup" and "Connect on Launch."
-
-Add a cronjob to `crontab -e` to connect to the VPN on startup.
-
-```
-@reboot /usr/local/bin/piactl connect
-```
-
-> **_NOTE:_** The cronjob is necessary even when the PIA daemon is enabled and auto-connect is enabled for connect on startup.
-
-## To Do
-
-- Utilize `piactl monitor` to detect for value changes instead of doing it manually using `piactl get`.
-
-  - This could be used in the `ipcheck.sh` script to have one continuously running script to check and report changes, instead of re-running the script every minute.
-
-  - Ultimately, this could reduce/eliminate the need for hidden files that hold current values.
-
-- Instead of checking for VPN connection is `ipcheck.sh` script, check for internet connection so that the IFTTT event is also triggered when the device is disconnected from the VPN. (This is important information to know if trying to connect remotely).
-
-  - The first check could be for internet, then the check for VPN IP, then the check for VPN Port. The first check would exit if no internet connection is detected after say 20 checks in 5 minutes. The second two checks could only wait, for example, 10 and 3 seconds respectively before moving on and reporting a disconnected/inactive state rather than quitting.
-
-  - Alternatively, instead of using the `pi-ip` internet check, one could see if `piactl` could give connection status without the VPN connected. This way `piactl monitor` could be used throughout.
-
-- In `pia-port-detect.sh`, check whether the port read from the pipe/fifo is "Inactive" or Invalid so the script doesn't attempt to execute an invalid socat command.
-
-- Reorganize this README
+Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later.
