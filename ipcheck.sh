@@ -5,6 +5,18 @@ SCRIPT_RELATIVE_DIR=$(dirname "${BASH_SOURCE[0]}")
 cd $SCRIPT_RELATIVE_DIR
 ABSOLUTE_PATH=$(pwd)
 
+# CHECK IF THERE IS INTERNET CONNECTION
+function check_online
+{
+	ON_NOW=$(netcat -z -w 5 1.1.1.1 53 && echo "1" || echo "0")
+	if [ "$ON_NOW" = "1" ]; then
+		echo "$ON_NOW"
+	else
+		ping -q -c 1 -W 3 archlinux.org &> /dev/null && echo "1" || echo "0"
+	fi
+}
+
+# GET THE VPN CONNECTION STATUS AND PORT FROM PIACTL
 function get_vpn_ip
 {
 	/usr/local/bin/piactl get vpnip
@@ -15,19 +27,34 @@ function get_portforward
 	/usr/local/bin/piactl get portforward
 }
 
+
 # SEND IFTTT REQUEST
 function ifttt_request
 {
 	curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}
-	echo "Running curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}"
+	echo "Running curl -o /dev/null -X POST -H \"Content-Type: application/json\" -d \"{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}\" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}"
 }
+
+# CHECK FOR ONLINE STATUS
+IS_ONLINE=$(check_online)
+MAX_CHECKS=20
+CHECKS=0
+
+while [ "$IS_ONLINE" = "0" ]; do
+	sleep 10;
+	IS_ONLINE=$(check_online)
+	CHECKS=$[ $CHECKS + 1 ]
+	if [ $CHECKS -gt $MAX_CHECKS ]; then
+		break
+	fi
+done
 
 # CHECK FOR PIA VPN IP
 VPN_IP=$(get_vpn_ip)
-MAX_CHECKS=10
+MAX_CHECKS=2
 CHECKS=0
 
-while [ "$VPN_IP" = "Unknown" ]; do
+while ([ "$VPN_IP" = "Unknown" ] || [ "$VPN_IP" = "Attempting" ]); do
 	sleep 5;
 	VPN_IP=$(get_vpn_ip)
 	CHECKS=$[ $CHECKS + 1 ]
@@ -36,18 +63,13 @@ while [ "$VPN_IP" = "Unknown" ]; do
 	fi
 done
 
-if [ "$VPN_IP" = "Unknown" ]; then
-	exit 1
-fi
-
-
 # CHECK FOR PIA FORWARDED PORT
 VPN_PORT=$(get_portforward)
 MAX_CHECKS=3
 CHECKS=0
 
-while [ "$VPN_PORT" = "Inactive" ]; do
-	sleep 3;
+while ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_IP" = "Attempting" ]); do
+	sleep 1;
 	VPN_PORT=$(get_portforward)
 	CHECKS=$[ $CHECKS + 1 ]
 	if [ $CHECKS -gt $MAX_CHECKS ]; then
@@ -55,50 +77,34 @@ while [ "$VPN_PORT" = "Inactive" ]; do
 	fi
 done
 
-# GET THE LOCAL IP
-source "${ABSOLUTE_PATH}/.env"
-LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
-LOCAL_INET=($LOCAL_INET)
-LOCAL_IP=${LOCAL_INET[1]}
+SENT_AT=-5
 
-# UPDATE ZONEEDIT DDNS (OPTIONAL)
-# curl https://$ZONEEDIT_USERNAME:$ZONEEDIT_DYN_KEY@dynamic.zoneedit.com/auth/dynamic.html?host=$ZONEEDIT_HOSTNAME&myip=$VPN_IP
+while true
+do
+    if read line; then
 
-# CREATE NAMED PIPE TO TRANSFER PORT INFO THROUGH
-if ! [ -p "${ABSOLUTE_PATH}/.vpn_port_pipe" ]; then
-	mkfifo "${ABSOLUTE_PATH}/.vpn_port_pipe"
-fi
+        if ! [ "$line" = "Attempting" ]; then
 
+			ELAPSED=$((SECONDS-SENT_AT))
 
-# SEND THE LOCAL IP TO IFTTT ON startup ARG
-if [[ "$1" == "startup" ]]; then
-	ifttt_request
-	echo ${LOCAL_IP} > ${ABSOLUTE_PATH}/.ip_local.temp
-	echo ${VPN_IP} > ${ABSOLUTE_PATH}/.vpn_ip.temp
-	echo ${VPN_PORT} > ${ABSOLUTE_PATH}/.vpn_port.temp
-	echo ${VPN_PORT} > ${ABSOLUTE_PATH}/.vpn_port_pipe &
-	exit 0
-fi
+			if [ $ELAPSED -gt 2 ]; then
 
-# COMPARE THE NEW IP TO THE OLD IP ON NON-STARTUP FLAG
-OLD_LOCAL_IP=$(cat ${ABSOLUTE_PATH}/.ip_local.temp)
-OLD_VPN_IP=$(cat ${ABSOLUTE_PATH}/.vpn_ip.temp)
-OLD_VPN_PORT=$(cat ${ABSOLUTE_PATH}/.vpn_port.temp)
+				sleep 3
 
-if [[ "$OLD_VPN_PORT" != "$VPN_PORT" ]]; then
-	echo ${VPN_PORT} > ${ABSOLUTE_PATH}/.vpn_port_pipe &
-	ifttt_request
-elif [[ "$OLD_LOCAL_IP" != "$LOCAL_IP" ]]; then
-	ifttt_request
-elif [[ "$OLD_VPN_IP" != "$VPN_IP" ]]; then
-	ifttt_request
-else
-	echo "Nothing has changed"
-	exit 0
-fi
+				source "${ABSOLUTE_PATH}/.env"
+				LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
+				LOCAL_INET=($LOCAL_INET)
+				LOCAL_IP=${LOCAL_INET[1]}
 
-echo ${VPN_PORT} > ${ABSOLUTE_PATH}/.vpn_port.temp
-echo ${LOCAL_IP} > ${ABSOLUTE_PATH}/.ip_local.temp
-echo ${VPN_IP} > ${ABSOLUTE_PATH}/.vpn_ip.temp
+				VPN_IP=$(/usr/local/bin/piactl get vpnip)
+				VPN_PORT=$(/usr/local/bin/piactl get portforward)
+            
+			
+				ifttt_request
+				SENT_AT=$SECONDS
 
-exit 0
+			fi
+        fi
+    fi
+done < <((/usr/local/bin/piactl monitor vpnip) & (/usr/local/bin/piactl monitor portforward))
+
