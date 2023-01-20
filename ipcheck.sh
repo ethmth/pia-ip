@@ -80,7 +80,6 @@ done
 while true
 do
     if read line; then
-		echo $line
 
         if ! [ "$line" = "Attempting" ]; then
 			sleep 5
