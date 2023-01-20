@@ -1,3 +1,4 @@
 .env
 .socat_pid.temp
 .local_port.temp
+.sent_payload.temp

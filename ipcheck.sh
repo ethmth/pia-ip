@@ -31,8 +31,8 @@ function get_portforward
 # SEND IFTTT REQUEST
 function ifttt_request
 {
-	curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}
 	echo "Running curl -o /dev/null -X POST -H \"Content-Type: application/json\" -d \"{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}\" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}"
+	# curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}
 }
 
 # CHECK FOR ONLINE STATUS
@@ -77,32 +77,29 @@ while ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_IP" = "Attempting" ]); do
 	fi
 done
 
-SENT_AT=-5
-
 while true
 do
     if read line; then
+		echo $line
 
         if ! [ "$line" = "Attempting" ]; then
+			sleep 5
 
-			ELAPSED=$((SECONDS-SENT_AT))
+			source "${ABSOLUTE_PATH}/.env"
+			LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
+			LOCAL_INET=($LOCAL_INET)
+			LOCAL_IP=${LOCAL_INET[1]}
 
-			if [ $ELAPSED -gt 2 ]; then
+			VPN_IP=$(/usr/local/bin/piactl get vpnip)
+			VPN_PORT=$(/usr/local/bin/piactl get portforward)
 
-				sleep 3
-
-				source "${ABSOLUTE_PATH}/.env"
-				LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
-				LOCAL_INET=($LOCAL_INET)
-				LOCAL_IP=${LOCAL_INET[1]}
-
-				VPN_IP=$(/usr/local/bin/piactl get vpnip)
-				VPN_PORT=$(/usr/local/bin/piactl get portforward)
-            
-			
+			PAYLOAD="{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}"
+			OLD_PAYLOAD=$(cat ${ABSOLUTE_PATH}/.sent_payload.temp)
+			if [[ "$OLD_PAYLOAD" == "$PAYLOAD" ]]; then
+				echo "payload data hasn't changed"
+			else
 				ifttt_request
-				SENT_AT=$SECONDS
-
+				echo "$PAYLOAD" > ${ABSOLUTE_PATH}/.sent_payload.temp
 			fi
         fi
     fi
