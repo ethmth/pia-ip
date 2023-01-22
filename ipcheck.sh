@@ -68,7 +68,7 @@ VPN_PORT=$(get_portforward)
 MAX_CHECKS=3
 CHECKS=0
 
-while ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_IP" = "Attempting" ]); do
+while ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ] || [ "$VPN_PORT" = "Failed" ] || [ "$VPN_PORT" = "Unavailable" ]); do
 	sleep 1;
 	VPN_PORT=$(get_portforward)
 	CHECKS=$[ $CHECKS + 1 ]

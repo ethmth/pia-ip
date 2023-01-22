@@ -21,7 +21,7 @@ do
         fi
         echo "-1" > ${ABSOLUTE_PATH}/.socat_pid.temp
 
-        if ! ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ]); then
+        if ! ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ] || [ "$VPN_PORT" = "Failed" ] || [ "$VPN_PORT" = "Unavailable" ]); then
 
             if ! [ -f "${ABSOLUTE_PATH}/.local_port.temp" ]; then
                 echo "22" > ${ABSOLUTE_PATH}/.local_port.temp # Default Local Port

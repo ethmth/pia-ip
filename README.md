@@ -124,6 +124,7 @@ Make the scripts executable.
 chmod +x ipcheck.sh
 chmod +x pia-fwd.sh
 chmod +x pia-port-detect.sh
+chmod +x pia-reconnect.sh
 ```
 
 Once you added the environment variables to the `.env` file, test the first script by running it.
@@ -156,7 +157,7 @@ Then, add the following lines, replacing the directory with the directory you cl
 - The second line will start the `pia-port-detect.sh` script which will also run on startup to ensure that any VPN Port changes are accounted for.
 - The third line (**NOT REQUIRED**) will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up your forwarding.
 
-### Easily access `pia-fwd.sh`
+### Easily access `pia-fwd.sh` and `pia-reconnect.sh`
 
 To make it easier to change the Local Port the VPN Port points to, simply add `pia-fwd.sh` to your bin.
 
@@ -168,3 +169,10 @@ sudo chmod +x /usr/bin/pia-fwd # Ensure it's executable
 Now, you can simply type `$ pia-fwd 25565` in your shell to start forwarding the VPN port to the default Minecraft Local Port. This is an example and you could use any valid port instead of 25565.
 
 Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later.
+
+To make it easier to reconnect to the VPN with a new IP, simply add `pia-reconnect.sh` to your bin.
+
+```sh
+sudo cp pia-reconnect.sh /usr/bin/pia-reconnect
+sudo chmod +x /usr/bin/pia-reconnect # Ensure it's executable
+```

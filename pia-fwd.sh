@@ -15,7 +15,7 @@ echo "-1" > ${ABSOLUTE_PATH}/.socat_pid.temp
 
 VPN_PORT=$(/usr/local/bin/piactl get portforward)
 
-if ! ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ]); then
+if ! ([ "$VPN_PORT" = "Inactive" ] || [ "$VPN_PORT" = "Attempting" ] || [ "$VPN_PORT" = "Failed" ] || [ "$VPN_PORT" = "Unavailable" ]); then
     socat tcp-listen:$VPN_PORT,reuseaddr,fork tcp:localhost:$LOCAL_PORT &> /dev/null &
     echo "$!" > ${ABSOLUTE_PATH}/.socat_pid.temp
 else
