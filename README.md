@@ -25,23 +25,84 @@ sudo pacman -S cronie
 sudo systemctl enable cronie
 ```
 
+## PIA VPN Setup
+
+### Command Line Installation
+
+Download the Linux installation script from the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) website.
+
+If you're attempting to run the VPN on a Raspberry Pi, you must download the ARM version from [here](https://www.privateinternetaccess.com/installer/x/download_installer_linux_arm/arm64).
+
+To download and install from the command line (with `wget` installed), replace the URL with the most updated one from [here](https://www.privateinternetaccess.com/download/linux-vpn) (amd64) or [here](https://www.privateinternetaccess.com/installer/x/download_installer_linux_arm/arm64) (arm64) and run:
+
+```sh
+# wget https://installers.privateinternetaccess.com/download/pia-linux-3.3.1-06924.run #amd64
+wget https://installers.privateinternetaccess.com/download/pia-linux-arm64-3.3.1-06924.run #arm64
+
+chmod +x pia-linux*
+./pia-linux*
+```
+
+Ensure that the `piactl` executable is at`/usr/local/bin/piactl` and test it's working by running `piactl get vpnip`.
+
+To configure PIA VPN like me, run:
+
+```sh
+piactl set allowlan true
+piactl set protocol openvpn
+piactl set requestportforward true
+```
+
+Then, log in by running:
+
+```sh
+echo "YOUR_USERNAME" > login.txt
+echo "YOUR_PASSWORD" >> login.txt
+
+piactl login login.txt
+rm login.txt
+```
+
+### GUI Installation
+
+Install the PIA VPN Linux Client by running their official script from [their website](https://www.privateinternetaccess.com/download/linux-vpn). Ensure that the `piactl` executable is at`/usr/local/bin/piactl`.
+
+Use the GUI installer to login and configure the client. If you want a configuration like mine, use the following settings:
+
+- General
+
+  - Check "Launch on System Startup"
+  - Check "Connect on Launch"
+
+- Protocols
+
+  - Select OpenVPN
+    - Transport: TCP
+    - Remote Port: 80
+    - Data Encryption: AES-256
+  - Uncheck "Try Alternate Settings"
+
+- Network
+
+  - DNS: PIA DNS
+  - Check "Request Port Forwarding"
+  - Check "Allow LAN Traffic"
+
+- Privacy
+
+  - Uncheck "VPN Kill Switch"
+
+- Help
+  - Uncheck "Enable Debug Logging"
+  - Check "Disable Accelerated Graphics
+
 ### Connect to PIA VPN on System Startup
-
-You must configure your device to use a wireless/wired network and automatically connect to the [Private Internet Access VPN](https://www.privateinternetaccess.com/download/linux-vpn) on startup.
-
-First, install the PIA VPN Linux Client using their official script. Ensure that the `piactl` executable is at`/usr/local/bin/piactl`.
 
 Enable the PIA VPN Daemon.
 
 ```sh
 piactl background enable
 ```
-
-Open the PIA VPN GUI and configure your desired server and settings.
-
-- Under "Network," you may want to check "Request Port Forwarding" and "Allow LAN Traffic."
-
-- Under "General," you may want to check "Launch on System Startup" and "Connect on Launch."
 
 Add a cronjob to `crontab -e` to connect to the VPN on startup.
 
@@ -51,7 +112,7 @@ Add a cronjob to `crontab -e` to connect to the VPN on startup.
 
 > **_NOTE:_** The cronjob is necessary even when the PIA daemon is enabled and auto-connect is enabled to connect on startup.
 
-## Setup
+## Setup the Scripts
 
 ### Getting the Files
 
@@ -125,6 +186,7 @@ chmod +x ipcheck.sh
 chmod +x pia-fwd.sh
 chmod +x pia-port-detect.sh
 chmod +x pia-reconnect.sh
+chmod +x pia-report.sh
 ```
 
 Once you added the environment variables to the `.env` file, test the first script by running it.
@@ -150,29 +212,36 @@ Then, add the following lines, replacing the directory with the directory you cl
 ```
 @reboot /home/$USER/pia-ip/ipcheck.sh
 @reboot /home/$USER/pia-ip/pia-port-detect.sh
-30 4 * * * /home/$USER/pia-ip/pia-fwd.sh 22
+5 5 * * * /home/$USER/pia-ip/pia-reconnect.sh 30
+25 5 * * * /home/$USER/pia-ip/pia-report.sh
+35 5 * * * /home/$USER/pia-ip/pia-fwd.sh 22
 ```
 
 - The first line will cause the `ipcheck.sh` script to run on startup and detect VPN IP updates.
-- The second line will start the `pia-port-detect.sh` script which will also run on startup to ensure that any VPN Port changes are accounted for.
-- The third line (**NOT REQUIRED**) will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up your forwarding.
+- The second line will start the `pia-port-detect.sh` script which will also run on startup to ensure that any VPN Port changes are accounted for regarding port forwarding.
+
+> **_NOTE:_** Lines 3-5 are optional.
+
+- The third line will automatically reconnect to the VPN at 5:05 AM every night.
+- The fourth line will report the current VPN IP, Port, and Local IP every night at 5:25 AM, regardless of whether it has changed.
+- The fifth line will reset the Local Port to 22 every day at 4:30 AM, so you are not locked out of your machine for more than a day if you mess up your forwarding.
 
 ### Easily access `pia-fwd.sh` and `pia-reconnect.sh`
 
 To make it easier to change the Local Port the VPN Port points to, simply add `pia-fwd.sh` to your bin.
 
+To make it easier to reconnect to the VPN, add `pia-reconnect.sh` to your bin.
+
 ```sh
 sudo cp pia-fwd.sh /usr/bin/pia-fwd
 sudo chmod +x /usr/bin/pia-fwd # Ensure it's executable
+
+sudo cp pia-reconnect.sh /usr/bin/pia-reconnect
+sudo chmod +x /usr/bin/pia-reconnect # Ensure it's executable
 ```
 
 Now, you can simply type `$ pia-fwd 25565` in your shell to start forwarding the VPN port to the default Minecraft Local Port. This is an example and you could use any valid port instead of 25565.
 
-Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later.
+> **_NOTE:_** Try to reset the port to 22 by using `$ pia-fwd 22` when you're done if you'll be leaving your machine and want to remotely access it using SSH later.
 
-To make it easier to reconnect to the VPN with a new IP, simply add `pia-reconnect.sh` to your bin.
-
-```sh
-sudo cp pia-reconnect.sh /usr/bin/pia-reconnect
-sudo chmod +x /usr/bin/pia-reconnect # Ensure it's executable
-```
+To reconnect to the VPN, you can just run `pia-reconnect`.
