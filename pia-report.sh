@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # GET ABSOLUTE PATH
 SCRIPT_RELATIVE_DIR=$(dirname "${BASH_SOURCE[0]}")

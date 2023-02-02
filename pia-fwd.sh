@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ABSOLUTE_PATH="/home/$USER/Documents/Programs/pia-ip"
 
