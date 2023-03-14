@@ -33,6 +33,7 @@ function ifttt_request
 {
 	echo "Running curl -o /dev/null -X POST -H \"Content-Type: application/json\" -d \"{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}\" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}"
 	curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"message\": \"${IFTTT_MESSAGE}\",\"local-ip\": \"${LOCAL_IP}\",\"vpn-ip\": \"${VPN_IP}\",\"vpn-port\": \"${VPN_PORT}\"}" https://maker.ifttt.com/trigger/${IFTTT_EVENT}/json/with/key/${IFTTT_KEY}
+	curl -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"id\": \"$(cat /etc/hostname)\",\"local\": \"${LOCAL_IP}\",\"ip\": \"${VPN_IP}\", \"port\": \"${VPN_PORT}\"}" $REST_DNS_URL/ip
 }
 
 # CHECK FOR ONLINE STATUS
@@ -88,6 +89,7 @@ do
 			LOCAL_INET=$(ip a | grep ${INTERFACE_NAME} | grep inet | xargs)
 			LOCAL_INET=($LOCAL_INET)
 			LOCAL_IP=${LOCAL_INET[1]}
+			LOCAL_IP=${LOCAL_IP%/*}
 
 			VPN_IP=$(/usr/local/bin/piactl get vpnip)
 			VPN_PORT=$(/usr/local/bin/piactl get portforward)
